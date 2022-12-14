@@ -38,16 +38,13 @@
   }
 
   export function resize() {
-    const xPrevMax = xMax;
-    const yPrevMax = yMax;
-    xMax = window.innerWidth - size;
-    yMax = window.innerHeight - size;
-    const xConversion = xPrevMax / xMax;
-    const yConversion = yPrevMax / yMax;
-    x = ~~(x * xConversion);
-    y = ~~(y * yConversion);
-    if (x > xMax) x = xMax;
-    if (y > yMax) y = yMax;
+    const { innerWidth, innerHeight } = window;
+    const xRatio = innerWidth / xMax;
+    const yRatio = innerHeight / yMax;
+    x *= xRatio;
+    y *= yRatio;
+    xMax = innerWidth;
+    yMax = innerHeight;
   }
 
   export function move() {
@@ -65,7 +62,7 @@
       y = y < 0 ? 0 : yMax;
       y += yStep;
     }
-    const { x: playerX, y: playerY, size: playerSize, xStep: playerXStep, yStep: playerYStep } = player;
+    const { x: playerX, y: playerY, size: playerSize, heading: playerHeading } = player;
     if (playerSize) {
       if (x + size < playerX + playerSize * .2) return;
       if (y + size < playerY + playerSize * .2) return;
@@ -74,12 +71,10 @@
       const bouncer = { x, y };
       // direction of bouncer to player
       const positionVector = vector({ x: playerX + playerSize / 2, y: playerY + playerSize / 2 }, { x: x + size / 2, y: y + size / 2 });
-      // player trajectory
-      const playerVector = vector(player, { x: playerXStep, y: playerYStep });
       // bouncer trajectory
-      const bouncerVector = vector(bouncer, { x: xStep, y: yStep });
+      const bouncerHeading = vector(bouncer, { x: xStep, y: yStep });
       // median of player and bouncer trajectories?
-      const newVector = vector(playerVector, bouncerVector);
+      const newVector = vector(playerHeading, bouncerHeading);
       // median of median trajectory and position direction
       const combinedVector = vector(newVector, positionVector);
       // reflection of trajectory/position vector

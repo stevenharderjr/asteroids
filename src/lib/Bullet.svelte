@@ -3,12 +3,12 @@
   import { vector, reflect, force } from '../utils/vector.js'
   const dispatch = createEventDispatcher();
 
-  export let x;
-  export let y;
-  export let heading;
-  export let player = { x: -100, y: -100, size: 0 };
-  export let size = 8;
   export let id;
+  let x;
+  let y;
+  let h;
+  let v;
+  let size = 4;
 
   let xMin = -size;
   let yMin = -size;
@@ -16,20 +16,37 @@
   let yMax = window.innerHeight;
   let distanceTraveled = 0;
   let range = xMax / 2;
-  let alive = true;
+  let alive = false;
 
   export function resize() {
-    xMax = window.innerWidth;
-    yMax = window.innerHeight;
+    const { innerWidth, innerHeight } = window;
+    const xRatio = innerWidth / xMax;
+    const yRatio = innerHeight / yMax;
+    x *= xRatio;
+    y *= yRatio;
+    xMax = innerWidth;
+    yMax = innerHeight;
+  }
+
+  export function fire(playerX, playerY, playerH, playerV) {
+    if (alive) return;
+    alive = true;
+    x = playerX;
+    y = playerY;
+    h = playerH;
+    v = playerV;
   }
 
   export function move() {
-    if (!alive || distanceTraveled > range) return;
+    if (!alive) return;
+    if (distanceTraveled > range) {
+      alive = false;
+      dispatch('max-range', id);
+    }
 
     distanceTraveled++;
-    const { x: vX, y: vY } = heading;
-    x += vX;
-    y += vY;
+    x += h;
+    y += v;
     if (x > xMax) x = xMin;
     if (x < xMin) x = xMax;
     if (y > yMax) y = yMin;
@@ -37,12 +54,15 @@
   }
 </script>
 
-<div class="bouncer" class:dead={!alive} style="left:{x}px; top:{y}px; height:{size}px; width:{size}px; border-radius:{size / 2}px"></div>
+<div class="bullet" class:dead={!alive} style="left:{x}px; top:{y}px;"></div>
 
 <style>
-  .bouncer {
+  .bullet {
     position:absolute;
-    background:#000;
+    background:#fff;
+    border-radius: 2px;
+    height: 4px;
+    width: 4px;
     z-index: 1;
   }
   .dead {

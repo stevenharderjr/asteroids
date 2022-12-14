@@ -27,7 +27,7 @@
     for (let i = 0; i < maxProjectiles; i++) bullets.push(i);
   let bulletIndex = 0;
   let bouncers = [];
-  let playerStatus = { x: -100, y: -100, size: 0, xSte: 0, yStep: 0 };
+  let playerStatus = { x: -100, y: -100, size: 0, h: 0, v: 0 };
   let playing = true;
   let movementDelay = 16;
   let growthDelay = 15000;
@@ -36,12 +36,11 @@
   let keys = {};
   $: player = bouncers[0];
 
-  function fireNextBullet({ detail: { x, y, heading } }) {
+  function fireNextBullet() {
     console.log('Should fire a bullet');
     if (bulletIndex === maxProjectiles) bulletIndex = 0;
-    bullets[bulletIndex].x = x;
-    bullets[bulletIndex].y = y;
-    bullets[bulletIndex].heading = heading;
+    const { x, y, h, v } = playerStatus;
+    bullets[bulletIndex].fire(x, y, { h, v });
   }
 
   function handleResize() {
@@ -122,7 +121,7 @@
   <div class="container">
     <Player bind:size={playerSize} bind:this={bouncers[0]} on:enter-key={handlePause} on:shoot={fireNextBullet} />
     {#each bullets as bullet, i}
-      <Bullet x={bullets[i].x} y={bullets[i].y} heading={bullets[i].heading}/>
+      <Bullet id={i} bind:this={bullets[i]} />
     {/each}
   </div>
   <div class="overlay">

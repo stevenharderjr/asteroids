@@ -42,16 +42,15 @@
   }
 
   export function resize() {
-    const xPrevMax = xMax;
-    const yPrevMax = yMax;
-    xMax = window.innerWidth - size;
-    yMax = window.innerHeight - size;
-    const xConversion = xPrevMax / xMax;
-    const yConversion = yPrevMax / yMax;
-    x = ~~(x * xConversion);
-    y = ~~(y * yConversion);
-    if (x > xMax) x = xMax;
-    if (y > yMax) y = yMax;
+    const { innerWidth, innerHeight } = window;
+    // xMax = 100, innerWidth = 200, x = 50 => x = 100
+    // xMax = 200, innerWidth = 100, x = 50 * .5 (25)
+    const xRatio = innerWidth / xMax;
+    const yRatio = innerHeight / yMax;
+    x *= xRatio;
+    y *= yRatio;
+    xMax = innerWidth;
+    yMax = innerHeight;
   }
 
   export function move() {
