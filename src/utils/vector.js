@@ -7,7 +7,10 @@ export function accelerate({ h: x1, v: y1 }, { h: x2, v: y2 }) {
 }
 
 export function force({ h, v }, factor = 1.2) {
-  return { h: h * factor, v: v * factor };
+  return {
+    h: h !== 0 ? h * factor : h,
+    v: v !== 0 ? v * factor : v,
+  };
 }
 
 export function reflect({ x, y }, axis) {
