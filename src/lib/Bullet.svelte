@@ -1,22 +1,28 @@
 <script>
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-  import { vector, reflect, force } from '../utils/vector.js'
+  import { vector, reflect, force, magnitude } from '../utils/vector.js'
   const dispatch = createEventDispatcher();
 
   export let id;
   let x;
   let y;
-  let h;
-  let v;
-  let size = 4;
+  let heading = { h: 0, v: 0 };
+  let size = 8;
 
   let xMin = -size;
   let yMin = -size;
   let xMax = window.innerWidth;
   let yMax = window.innerHeight;
-  let distanceTraveled = 0;
-  let range = xMax / 2;
-  let alive = false;
+  let distanceTraveled;
+  let topSpeed = 30;
+  let range = 120;
+  let spent = true;
+  $: opacity = 1 - (1 / (range - distanceTraveled));
+
+  function init() {
+    spent = true;
+    distanceTraveled = 0;
+  }
 
   export function resize() {
     const { innerWidth, innerHeight } = window;
@@ -28,23 +34,29 @@
     yMax = innerHeight;
   }
 
-  export function fire(playerX, playerY, playerH, playerV) {
-    if (alive) return;
-    alive = true;
-    x = playerX;
-    y = playerY;
-    h = playerH;
-    v = playerV;
+  export function fire(playerStatus) {
+    if (!spent) return;
+    const { x: playerX, y: playerY, size: playerSize, rotation: playerRotation, heading: playerHeading } = playerStatus;
+    spent = false;
+    distanceTraveled = 0;
+
+    const rads = (playerRotation - 90) * 0.0174533;
+    const { h: playerH, v: playerV } = playerHeading;
+    x = (playerX - 6 + playerSize / 2) - playerH;
+    y = (playerY - 6 + playerSize / 2) - playerV;
+    const playerSpeed = magnitude(playerHeading);
+    // const factor = topSpeed / playerSpeed;
+    heading = force({ h: Math.cos(rads), v: Math.sin(rads)}, playerSpeed + 10 );
   }
 
   export function move() {
-    if (!alive) return;
-    if (distanceTraveled > range) {
-      alive = false;
-      dispatch('max-range', id);
+    if (spent) return;
+    if (++distanceTraveled > range) {
+      distanceTraveled = range;
+      spent = true;
+      return;
     }
-
-    distanceTraveled++;
+    const { h, v, } = heading;
     x += h;
     y += v;
     if (x > xMax) x = xMin;
@@ -54,15 +66,15 @@
   }
 </script>
 
-<div class="bullet" class:dead={!alive} style="left:{x}px; top:{y}px;"></div>
+<div class="bullet" class:dead={false} style="left:{x}px; top:{y}px; opacity:{opacity};"></div>
 
 <style>
   .bullet {
     position:absolute;
     background:#fff;
-    border-radius: 2px;
-    height: 4px;
-    width: 4px;
+    border-radius: 4px;
+    height: 8px;
+    width: 8px;
     z-index: 1;
   }
   .dead {

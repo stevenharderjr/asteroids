@@ -1,9 +1,9 @@
 <script>
   // import logo from '../assets/logo192.png';
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-  import { force, reflect, accelerate, magnitude } from '../utils/vector.js'
+  import { vector, force, reflect, accelerate, magnitude } from '../utils/vector.js'
   // import logo from '../assets/RALOS1.svg';
-  export let topSpeed = 25;
+  export let topSpeed = 8;
   export let minSpeed = 0;
   export let status = 'player';
 
@@ -23,49 +23,51 @@
   let x = ~~(window.innerWidth / 2 - size / 2);
   let y = ~~(window.innerHeight / 2 - size / 2);
   let speed = 0;
-  let accel = 1 / topSpeed;
+  let accel = 0.25;
+  let engineBoostFactor = 1;
+  let turningBoostFactor = 1;
   let decel = .996;
   let entropy = true;
   let decelInterval;
   let bounceEffect = .8;
+  let priorSteeringInput = 0;
   let rotationSpeed = 0;
   let rotationAccel = 1.5;
-  let rotationDecel = .9;
-  let maxRotationSpeed = 4;
+  let rotationDecel = 1.01;
+  let maxRotationSpeed = 8;
   let rotation = 0;
   let flashDuration = 400;
   let flashingTimeout;
 
   export function resize() {
     const { innerWidth, innerHeight } = window;
+    topSpeed = Math.min(innerWidth, innerHeight) / 120;
     const xRatio = innerWidth / xMax;
     const yRatio = innerHeight / yMax;
     x *= xRatio;
     y *= yRatio;
     xMax = innerWidth;
     yMax = innerHeight;
-    return { x, y, heading, size };
+    return { x, y, size, heading };
   }
 
   export function move() {
     if (!alive) return;
+    rotation += rotationSpeed;
+    rotationSpeed /= rotationDecel;
     if (entropy) {
       heading = force(heading, decel);
     } else {
-      const speed = magnitude(heading);
-      if (speed < topSpeed) {
-        console.log(speed);
-        const rads = (rotation - 90) * 0.0174533;
-        const faster = accelerate(heading, { h: Math.cos(rads), v: Math.sin(rads)});
-        heading = faster;
-        // const factor = magnitude(faster) * accel;
-        // console.log(magnitude(faster), factor);
-        // console.log(force(heading, factor));
-        // heading = force(faster, factor);
+      const rads = (rotation - 90) * 0.0174533;
+      const newHeading = accelerate(heading, { h: Math.cos(rads) * accel * engineBoostFactor, v: Math.sin(rads) * accel * engineBoostFactor});
+      const speed = magnitude(newHeading);
+      if (Math.abs(speed) < topSpeed * engineBoostFactor) {
+        heading = newHeading;
+      } else {
+        const factor = topSpeed * engineBoostFactor / speed;
+        heading = force(newHeading, factor);
       }
     }
-    rotation += rotationSpeed;
-    rotationSpeed *= .99;
     const { h, v } = heading;
     x += h;
     y += v;
@@ -73,7 +75,7 @@
     if (x < xMin) x = xMax;
     if (y > yMax) y = yMin;
     if (y < yMin) y = yMax;
-    return { x, y, size };
+    return { x, y, size, rotation, heading };
   }
 
   function handleKeyDown({ key }) {
@@ -89,26 +91,29 @@
     //     keys.ArrowUp = undefined;
     //     break;
     //   case 'ArrowLeft':
-    //     keys.ArrowRight = undefined;
+    //     // keys.ArrowRight = undefined;
     //     break;
     //   case 'ArrowRight':
-    //     keys.ArrowLeft = undefined;
+    //     // keys.ArrowLeft = undefined;
     //     break;
     //   default:
     //     break;
     // }
-    if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowLeft' || key === ' ') respondToInput();
+    if (key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowLeft' || key === ' ' || key === 'ArrowDown') respondToInput();
   }
 
   function handleKeyUp({ key }) {
     // keys = {};
     keys[key === ' ' ? 'Space' : key] = undefined;
-    if (key === 'ArrowUp') entropy = true;
+    if (key === 'ArrowUp' || key === 'ArrowDown') entropy = true;
     // if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowLeft') respondToInput();
   }
 
   function respondToInput() {
+    engineBoostFactor = 1;
+
     const { ArrowUp, ArrowRight, ArrowLeft, Space } = keys;
+    if (Space) dispatch('shoot', { x, y, size, rotation, heading });
     if (ArrowUp) {
       entropy = false;
     }
@@ -119,31 +124,63 @@
     //   } else if (yStep < topSpeed) yStep *= (1 + accel);
     // }
     if (!(ArrowRight || ArrowLeft)) {
-      rotationSpeed *= rotationDecel;
+      engineBoostFactor = 1;
     } else {
-      if(ArrowRight) {
-        if (rotationSpeed > 0) {
-          rotationSpeed *= (1 + rotationAccel);
-        } else if (rotationSpeed < -.5) {
-          rotationSpeed *= (1- rotationAccel);
-        } else {
-          rotationSpeed = rotationAccel / 2;
-        }
-        if (rotationSpeed > maxRotationSpeed) rotationSpeed = maxRotationSpeed;
+      let boostedRotationAccel = rotationAccel;
+      if (ArrowUp) {
+        engineBoostFactor = 2;
+        // boostedRotationAccel **= 2;
       }
-      if(ArrowLeft) {
-        if (rotationSpeed < 0) {
-          rotationSpeed *= (1 + rotationAccel)
-         } else if (rotationSpeed > .5) {
-          rotationSpeed *= (1 - rotationAccel);
-        } else {
-          rotationSpeed = -rotationAccel / 2;
+        if (ArrowRight && (!ArrowLeft || (ArrowLeft && priorSteeringInput > 0))) {
+          // quicker initial rotation change when changing direction
+          let max = maxRotationSpeed;
+          priorSteeringInput = 1;
+
+          if (ArrowLeft) {
+            boostedRotationAccel /= 2;
+            max /= 2;
+            priorSteeringInput = 0;
+          } else if (ArrowUp) {
+            boostedRotationAccel **= 2;
+          }
+
+          if (rotationSpeed > 0) {
+            rotationSpeed *= (1 + boostedRotationAccel);
+          } else if (rotationSpeed < -.5) {
+            rotationSpeed *= (1 - boostedRotationAccel);
+          } else {
+            rotationSpeed = boostedRotationAccel / 2;
+          }
+          if (!ArrowLeft) {
+            if (rotationSpeed > max / 2) rotationSpeed = max / 2;
+          }
+          if (rotationSpeed > max) rotationSpeed = max;
         }
-        const max = -maxRotationSpeed;
-        if (rotationSpeed < max) rotationSpeed = max;
-      }
+        if (ArrowLeft && (!ArrowRight || (ArrowRight && priorSteeringInput < 0))) {
+          priorSteeringInput = -1;
+          let max = -maxRotationSpeed;
+          if (ArrowRight) {
+            boostedRotationAccel /= 2;
+            max /= 2;
+            priorSteeringInput = 0;
+          } else if (ArrowUp) {
+            boostedRotationAccel **= 2;
+          }
+
+          if (rotationSpeed < 0) {
+            rotationSpeed *= (1 + boostedRotationAccel)
+           } else if (rotationSpeed > .5) {
+            rotationSpeed *= (1 - boostedRotationAccel);
+          } else {
+            rotationSpeed = -boostedRotationAccel / 2;
+          }
+          if (!ArrowRight) {
+            priorSteeringInput = -1;
+            if (rotationSpeed < max / 2) rotationSpeed = max / 2;
+          }
+          if (rotationSpeed < max) rotationSpeed = max;
+        }
     }
-    if(Space) dispatch('shoot', force(heading, 20));
   }
 
   export function killConfirmed() {

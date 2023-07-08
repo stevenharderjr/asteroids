@@ -18,30 +18,26 @@
   let xMax = window.innerWidth;
   let yMax = window.innerHeight;
   let alive = true;
-  let x = ~~(Math.random() * xMax - size);
-  let y = ~~(Math.random() * yMax - size);
-  x *= Math.round(Math.random()) ? xMax : -xMax;
-  y *= Math.round(Math.random()) ? yMax : -yMax;
-  let accel = .2;
+  let { x, y, h, v } = player;
 
-  let xStep = +(-topSpeed + Math.random() * (topSpeed * 2)).toFixed(2);
-  if (xStep > -minSpeed && xStep < minSpeed) {
-    xStep = xStep < 0 ? -minSpeed : minSpeed;
-  }
+  // let h = +(-topSpeed + Math.random() * (topSpeed * 2)).toFixed(2);
+  // if (h > -minSpeed && h < minSpeed) {
+  //   h = h < 0 ? -minSpeed : minSpeed;
+  // }
 
-  let yStep = +(-topSpeed + Math.random() * (topSpeed * 2)).toFixed(2);
-  if (yStep > -minSpeed && yStep < minSpeed) {
-    yStep = yStep < 0 ? -minSpeed : minSpeed;
-  }
+  // let v = +(-topSpeed + Math.random() * (topSpeed * 2)).toFixed(2);
+  // if (v > -minSpeed && v < minSpeed) {
+  //   v = v < 0 ? -minSpeed : minSpeed;
+  // }
 
-  export function init() {
-    clearInterval(growthInterval);
-    alive = true;
-    x = ~~(Math.random() * window.innerWidth - size);
-    y = ~~(Math.random() * window.innerHeight - size);
-    x *= Math.round(Math.random()) ? xMax : -xMax;
-    y *= Math.round(Math.random()) ? yMax : -yMax;
-  }
+  // export function init() {
+  //   clearInterval(growthInterval);
+  //   alive = true;
+  //   x = ~~(Math.random() * window.innerWidth - size);
+  //   y = ~~(Math.random() * window.innerHeight - size);
+  //   x *= Math.round(Math.random()) ? xMax : -xMax;
+  //   y *= Math.round(Math.random()) ? yMax : -yMax;
+  // }
 
   export function resize() {
     const { innerWidth, innerHeight } = window;
@@ -56,8 +52,8 @@
   export function move() {
     if (!alive) return;
 
-    x += xStep;
-    y += yStep;
+    x += h;
+    y += v;
     if (x > xMax) x = xMin;
     if (x < xMin) x = xMax;
     if (y > yMax) y = yMin;
