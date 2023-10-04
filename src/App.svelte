@@ -7,6 +7,7 @@
   import timer from './utils/timer.js';
   import Player from './lib/Player.svelte';
   import Bullet from './lib/Bullet.svelte';
+  import Bouncer from './lib/Bouncer.svelte';
   // import Drone from './lib/Drone.svelte';
   // import Projectile from './lib/Projectile.svelte';
 
@@ -18,11 +19,14 @@
   const say = messageTimer(text => message = text);
 
   let start;
-  let maxUnits = 40;
-  let maxProjectiles = 20;
-  let bulletIndex = cycle(1, maxUnits);
-  let units = [];
-    // for (let i = 0; i < maxProjectiles; i++) units.push(i);
+  let maxAsteroids = 40;
+  let asteroids = [];
+  for (let i = 0; i < maxAsteroids; i++) asteroids.push(i);
+  let maxProjectiles = 200;
+  const bullets = [];
+  for (let i = 0; i < maxProjectiles; i++) bullets.push(i);
+  let bulletIndex = cycle(1, maxProjectiles);
+  let player;
   let playerStatus = { x: -100, y: -100, size: 0, h: 0, v: 0 };
   let playing = true;
   let movementDelay = 16;
@@ -30,12 +34,10 @@
   let stopMoving = () => {};
   let stopGrowing = () => {};
   let keys = {};
-  $: player = units[0];
 
   function fireNextBullet() {
-    // const index = bulletIndex();
-    console.log('Should fire bullet', bulletIndex());
-    units[1].fire(playerStatus);
+    const index = bulletIndex();
+    bullets[index].fire(playerStatus);
   }
 
   function handleResize() {
@@ -64,13 +66,18 @@
   }
 
   function updateBouncers(method, factor) {
-    const length = units.length;
-    for (let i = 0; i < length + 1; i++) {
-      const bouncerMethod = units[i][method];
-      if (bouncerMethod) {
-        let statusUpdate = bouncerMethod(factor);
-        if (statusUpdate) playerStatus = statusUpdate;
-      }
+    const statusUpdate = player[method](factor);
+    if (statusUpdate) playerStatus = statusUpdate;
+    let i = asteroids.length;
+    while (i--) {
+      const asteroidMethod = asteroids[i][method];
+      asteroidMethod?.(factor);
+    }
+
+    i = bullets.length;
+    while (i--) {
+      const bulletMethod = bullets[i][method];
+      bulletMethod?.(playerStatus);
     }
   }
 
@@ -113,11 +120,14 @@
 
 <main>
   <div class="container">
-    <Player size={80} bind:this={units[0]} on:enter-key={handlePause} on:shoot={fireNextBullet} />
-    <Bullet id="1" bind:this={units[1]} />
-    <!-- {#each units as unit, i}
-      <Bullet id={unit} bind:this={units[i + 1]} />
-    {/each} -->
+    <Player size={80} bind:this={player} on:enter-key={handlePause} on:shoot={fireNextBullet} />
+    <!-- <Bullet id="1" bind:this={units[1]} /> -->
+    {#each bullets as bullet, i}
+      <Bullet id={'bullet' + i} bind:this={bullets[i]} />
+    {/each}
+    {#each asteroids as asteroid, i}
+      <Bouncer id={'asteroid' + i} player={playerStatus} />
+    {/each}
   </div>
   <div class="overlay">
   {#if message}

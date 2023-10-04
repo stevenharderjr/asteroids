@@ -13,6 +13,8 @@
   let yMin = -size;
   let xMax = window.innerWidth;
   let yMax = window.innerHeight;
+  let xRatio = innerWidth / xMax;
+  let yRatio = innerHeight / yMax;
   let distanceTraveled;
   let topSpeed = 30;
   let range = 120;
@@ -26,12 +28,13 @@
 
   export function resize() {
     const { innerWidth, innerHeight } = window;
-    const xRatio = innerWidth / xMax;
-    const yRatio = innerHeight / yMax;
+    xRatio = innerWidth / xMax;
+    yRatio = innerHeight / yMax;
     x *= xRatio;
     y *= yRatio;
     xMax = innerWidth;
     yMax = innerHeight;
+    range = Math.max(xRatio, yRatio) * 120;
   }
 
   export function fire(playerStatus) {
@@ -41,16 +44,21 @@
     distanceTraveled = 0;
 
     const rads = (playerRotation - 90) * 0.0174533;
+    const cos = Math.cos(rads);
+    const sin = Math.sin(rads);
+    const offsetX = cos * -40;
+    const offsetY = sin * -40;
     const { h: playerH, v: playerV } = playerHeading;
-    x = (playerX - 6 + playerSize / 2) - playerH;
-    y = (playerY - 6 + playerSize / 2) - playerV;
+    x = (playerX - 6 + playerSize / 2) - offsetX;
+    y = (playerY - 6 + playerSize / 2) - offsetY;
     const playerSpeed = magnitude(playerHeading);
     // const factor = topSpeed / playerSpeed;
-    heading = force({ h: Math.cos(rads), v: Math.sin(rads)}, playerSpeed + 10 );
+    heading = force({ h: cos, v: sin }, playerSpeed + 10 );
   }
 
   export function move() {
     if (spent) return;
+
     if (++distanceTraveled > range) {
       distanceTraveled = range;
       spent = true;
@@ -66,7 +74,7 @@
   }
 </script>
 
-<div class="bullet" class:dead={false} style="left:{x}px; top:{y}px; opacity:{opacity};"></div>
+<div class="bullet" class:dead={spent} style="left:{x}px; top:{y}px; opacity:{opacity};"></div>
 
 <style>
   .bullet {
@@ -78,6 +86,6 @@
     z-index: 1;
   }
   .dead {
-    display: hidden;
+    display: none;
   }
 </style>

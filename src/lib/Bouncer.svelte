@@ -158,6 +158,6 @@
     z-index: 1;
   }
   .dead {
-    display: hidden;
+    display: none;
   }
 </style>

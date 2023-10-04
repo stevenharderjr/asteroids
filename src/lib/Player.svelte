@@ -53,13 +53,15 @@
 
   export function move() {
     if (!alive) return;
-    rotation += rotationSpeed;
-    rotationSpeed /= rotationDecel;
-    if (entropy) {
+    const { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Space } = keys;
+    if (!(ArrowUp || ArrowDown)) {
       heading = force(heading, decel);
     } else {
+      rotationSpeed /= rotationDecel;
+      if (Space) rotationSpeed /= rotationDecel;
       const rads = (rotation - 90) * 0.0174533;
-      const newHeading = accelerate(heading, { h: Math.cos(rads) * accel * engineBoostFactor, v: Math.sin(rads) * accel * engineBoostFactor});
+      const direction = accel * (ArrowUp ? 1 : -0.25);
+      const newHeading = accelerate(heading, { h: Math.cos(rads) * direction * engineBoostFactor, v: Math.sin(rads) * direction * engineBoostFactor});
       const speed = magnitude(newHeading);
       if (Math.abs(speed) < topSpeed * engineBoostFactor) {
         heading = newHeading;
@@ -75,6 +77,8 @@
     if (x < xMin) x = xMax;
     if (y > yMax) y = yMin;
     if (y < yMin) y = yMax;
+    rotation += rotationSpeed;
+    rotationSpeed /= rotationDecel;
     return { x, y, size, rotation, heading };
   }
 
@@ -105,7 +109,6 @@
   function handleKeyUp({ key }) {
     // keys = {};
     keys[key === ' ' ? 'Space' : key] = undefined;
-    if (key === 'ArrowUp' || key === 'ArrowDown') entropy = true;
     // if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowLeft') respondToInput();
   }
 
@@ -114,9 +117,6 @@
 
     const { ArrowUp, ArrowRight, ArrowLeft, Space } = keys;
     if (Space) dispatch('shoot', { x, y, size, rotation, heading });
-    if (ArrowUp) {
-      entropy = false;
-    }
     // if (keys.ArrowDown) {
     //   if (yStep < 0) {
     //     yStep *= (1 - accel);
@@ -125,61 +125,67 @@
     // }
     if (!(ArrowRight || ArrowLeft)) {
       engineBoostFactor = 1;
+    } else if (ArrowRight && ArrowLeft) {
+      priorSteeringInput = 0;
+      rotationSpeed *= 0.5;
     } else {
       let boostedRotationAccel = rotationAccel;
+
+      if (ArrowRight && (!ArrowLeft || (ArrowLeft && priorSteeringInput > 0))) {
+        // priorSteeringInput: quicker initial rotation change when changing direction
+        let max = maxRotationSpeed;
+        priorSteeringInput = 1;
+
+        if (ArrowLeft) {
+          boostedRotationAccel /= 2;
+          max /= 2;
+          priorSteeringInput = 0;
+        } else if (ArrowUp) {
+          boostedRotationAccel **= 2;
+        }
+
+        if (rotationSpeed > 0) {
+          rotationSpeed *= (1 + boostedRotationAccel);
+        } else if (rotationSpeed < -.5) {
+          rotationSpeed *= (1 - boostedRotationAccel);
+        } else {
+          rotationSpeed = boostedRotationAccel / 2;
+        }
+
+        if (!ArrowLeft && (rotationSpeed > max / 2)) rotationSpeed = max / 2;
+
+        if (rotationSpeed > max) rotationSpeed = max;
+      }
+
+      if (ArrowLeft && (!ArrowRight || (ArrowRight && priorSteeringInput < 0))) {
+        priorSteeringInput = -1;
+        let max = -maxRotationSpeed;
+        if (ArrowRight) {
+          boostedRotationAccel /= 2;
+          max /= 2;
+          priorSteeringInput = 0;
+        } else if (ArrowUp) {
+          boostedRotationAccel **= 2;
+        }
+
+        if (rotationSpeed < 0) {
+          rotationSpeed *= (1 + boostedRotationAccel)
+          } else if (rotationSpeed > .5) {
+          rotationSpeed *= (1 - boostedRotationAccel);
+        } else {
+          rotationSpeed = -boostedRotationAccel / 2;
+        }
+
+        if (!ArrowRight && (rotationSpeed < max / 2)) rotationSpeed = max / 2;
+        if (rotationSpeed < max) rotationSpeed = max;
+      }
+
       if (ArrowUp) {
         engineBoostFactor = 2;
+        priorSteeringInput = 0;
         // boostedRotationAccel **= 2;
       }
-        if (ArrowRight && (!ArrowLeft || (ArrowLeft && priorSteeringInput > 0))) {
-          // quicker initial rotation change when changing direction
-          let max = maxRotationSpeed;
-          priorSteeringInput = 1;
 
-          if (ArrowLeft) {
-            boostedRotationAccel /= 2;
-            max /= 2;
-            priorSteeringInput = 0;
-          } else if (ArrowUp) {
-            boostedRotationAccel **= 2;
-          }
-
-          if (rotationSpeed > 0) {
-            rotationSpeed *= (1 + boostedRotationAccel);
-          } else if (rotationSpeed < -.5) {
-            rotationSpeed *= (1 - boostedRotationAccel);
-          } else {
-            rotationSpeed = boostedRotationAccel / 2;
-          }
-          if (!ArrowLeft) {
-            if (rotationSpeed > max / 2) rotationSpeed = max / 2;
-          }
-          if (rotationSpeed > max) rotationSpeed = max;
-        }
-        if (ArrowLeft && (!ArrowRight || (ArrowRight && priorSteeringInput < 0))) {
-          priorSteeringInput = -1;
-          let max = -maxRotationSpeed;
-          if (ArrowRight) {
-            boostedRotationAccel /= 2;
-            max /= 2;
-            priorSteeringInput = 0;
-          } else if (ArrowUp) {
-            boostedRotationAccel **= 2;
-          }
-
-          if (rotationSpeed < 0) {
-            rotationSpeed *= (1 + boostedRotationAccel)
-           } else if (rotationSpeed > .5) {
-            rotationSpeed *= (1 - boostedRotationAccel);
-          } else {
-            rotationSpeed = -boostedRotationAccel / 2;
-          }
-          if (!ArrowRight) {
-            priorSteeringInput = -1;
-            if (rotationSpeed < max / 2) rotationSpeed = max / 2;
-          }
-          if (rotationSpeed < max) rotationSpeed = max;
-        }
     }
   }
 
@@ -194,6 +200,7 @@
   onMount(() => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    resize();
   });
   onDestroy(() => {
     window.removeEventListener('keydown', handleKeyDown);
