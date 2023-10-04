@@ -154,7 +154,7 @@
 <style>
   .bouncer {
     position:absolute;
-    background:#000;
+    background:#333;
     z-index: 1;
   }
   .dead {

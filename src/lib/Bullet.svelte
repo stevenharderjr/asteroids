@@ -83,7 +83,7 @@
     border-radius: 4px;
     height: 8px;
     width: 8px;
-    z-index: 1;
+    z-index: 2;
   }
   .dead {
     display: none;
