@@ -7,6 +7,7 @@
   let x;
   let y;
   let heading = { h: 0, v: 0 };
+  let speed = 0;
   let size = 8;
 
   let xMin = -size;
@@ -17,7 +18,7 @@
   let yRatio = innerHeight / yMax;
   let distanceTraveled;
   let topSpeed = 30;
-  let range = 120;
+  let range = Math.min(innerWidth, innerHeight) - 120;
   let spent = true;
   $: opacity = 1 - (1 / (range - distanceTraveled));
 
@@ -34,7 +35,7 @@
     y *= yRatio;
     xMax = innerWidth;
     yMax = innerHeight;
-    range = Math.max(xRatio, yRatio) * 120;
+    range = Math.min(innerWidth, innerHeight) - 120;
   }
 
   export function fire(playerStatus) {
@@ -54,12 +55,13 @@
     const playerSpeed = magnitude(playerHeading);
     // const factor = topSpeed / playerSpeed;
     heading = force({ h: cos, v: sin }, playerSpeed + 10 );
+    speed = magnitude(heading);
   }
 
   export function move() {
     if (spent) return;
 
-    if (++distanceTraveled > range) {
+    if ((++distanceTraveled * speed) > range) {
       distanceTraveled = range;
       spent = true;
       return;
