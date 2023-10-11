@@ -5,7 +5,7 @@
   // import logo from '../assets/RALOS1.svg';
   export let topSpeed = 8;
   export let minSpeed = 0;
-  export let status = 'player';
+  export let status = {};
 
   const dispatch = createEventDispatcher();
 
@@ -24,12 +24,13 @@
   let y = ~~(window.innerHeight / 2 - size / 2);
   let speed = 0;
   let accel = 0.25;
+  let mass = 1;
   let engineBoostFactor = 1;
   let turningBoostFactor = 1;
   let decel = .996;
   let entropy = true;
   let decelInterval;
-  let bounceEffect = .8;
+  let bounceEffect = 0.01;
   let priorSteeringInput = 0;
   let rotationSpeed = 0;
   let rotationAccel = 1.5;
@@ -79,7 +80,24 @@
     if (y < yMin) y = yMax;
     rotation += rotationSpeed;
     rotationSpeed /= rotationDecel;
-    return { x, y, size, rotation, heading };
+    return { x, y, size, rotation, heading, mass };
+  }
+
+  export function redirect({ h: vX, v: vY }) {
+    // const { h: vX, v: vY } = force(bounceVector, bounceEffect);
+    x += vX;
+    y += vY;
+    heading.h += vX;
+    heading.v += vY;
+    let max = topSpeed;
+    let min = minSpeed;
+    const { h, v } = heading;
+    if (h > 0) heading.h = h < min ? min : h > max ? max : h;
+    if (v > 0) heading.v = v < min ? min : v > max ? max : v;
+    min = -minSpeed;
+    max = -topSpeed;
+    if (h < 0) heading.h = h > min ? min : h < max ? max : h;
+    if (v < 0) heading.v = v > min ? min : v < max ? max : v;
   }
 
   function handleKeyDown({ key }) {
@@ -192,9 +210,9 @@
   export function killConfirmed() {
     xMax = window.innerWidth - size;
     yMax = window.innerHeight - size;
-    clearTimeout(flashingTimeout);
-    status = 'flashing';
-    flashingTimeout = setTimeout(() => status = 'player', flashDuration);
+    // clearTimeout(flashingTimeout);
+    // status = 'flashing';
+    // flashingTimeout = setTimeout(() => status = 'player', flashDuration);
   }
 
   onMount(() => {

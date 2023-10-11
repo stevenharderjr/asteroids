@@ -77,7 +77,7 @@
       if (y + size < playerY + playerSize * .2) return;
       if (x > playerX + playerSize * .8) return;
       if (y > playerY + playerSize * .8) return;
-      alive = false;
+      // alive = false;
       deathSize = size;
       growthFactor = 1;
       // deadFactor = 4;

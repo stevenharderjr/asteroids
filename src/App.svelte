@@ -7,9 +7,10 @@
   import timer from './utils/timer.js';
   import Player from './lib/Player.svelte';
   import Bullet from './lib/Bullet.svelte';
-  import Bouncer from './lib/Bouncer.svelte';
+  import Asteroid from './lib/Asteroid.svelte';
   // import Drone from './lib/Drone.svelte';
   // import Projectile from './lib/Projectile.svelte';
+  let lastFrame = Date.now();
 
   const move = timer(() => updateBouncers('move'), 16);
   const grow = timer(() => updateBouncers('grow'), 200);
@@ -19,7 +20,7 @@
   const say = messageTimer(text => message = text);
 
   let start;
-  let maxAsteroids = 40;
+  let maxAsteroids = 8;
   let asteroids = [];
   for (let i = 0; i < maxAsteroids; i++) asteroids.push(i);
   let maxProjectiles = 200;
@@ -61,8 +62,8 @@
     // if (enemies - maxProjectiles === 0) return endStage();
   }
 
-  function handleBounce({ detail }) {
-    player.bounce(detail);
+  function handleCollision({ detail }) {
+    player.redirect(detail);
   }
 
   function updateBouncers(method, factor) {
@@ -100,7 +101,20 @@
   }
 
   function endStage() {
+    const playing = false;
     clearMessage = say([(`DRONES DESTROYED IN ${humanTime(Date.now() - start)}`).toUpperCase(), "PRESS [ENTER] TO CONTINUE"], -1);
+  }
+
+  function startLoop() {
+    let interval = 16;
+    let nextFrame = Date.now();
+    let lastFrame = nextFrame - interval;
+    while (playing) {
+      if (Date.now() > nextFrame) {
+        nextFrame = Date.now() + 16;
+        requestAnimationFrame(() => updateBouncers('move'));
+      }
+    }
   }
 
   onMount(() => {
@@ -111,6 +125,7 @@
     window.addEventListener('resize', handleResize);
   });
   onDestroy(() => {
+    playing = false;
     stopGrowing();
     stopMoving();
     clearMessage();
@@ -126,7 +141,7 @@
       <Bullet id={'bullet' + i} bind:this={bullets[i]} />
     {/each}
     {#each asteroids as asteroid, i}
-      <Bouncer id={'asteroid' + i} player={playerStatus} />
+      <Asteroid id={'asteroid' + i} player={playerStatus} bind:this={asteroids[i]} on:collision={handleCollision} />
     {/each}
   </div>
   <div class="overlay">

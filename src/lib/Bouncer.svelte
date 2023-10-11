@@ -57,11 +57,13 @@
       x = x < 0 ? 0 : xMax;
       x += xStep;
     }
+
     if (y > yMax || y < 0) {
       yStep = -yStep;
       y = y < 0 ? 0 : yMax;
       y += yStep;
     }
+
     const { x: playerX, y: playerY, size: playerSize, heading: playerHeading } = player;
     if (playerSize) {
       if (x + size < playerX + playerSize * .2) return;

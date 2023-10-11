@@ -13,7 +13,7 @@ export function force({ h, v }, factor = 1.2) {
   };
 }
 
-export function reflect({ x, y }, axis) {
+export function reflect({ h, v }, axis) {
   return {
     h: !axis || axis === 'x' || axis > 0 ? -h : h,
     v: !axis || axis === 'y' || axis < 0 ? -v : v,
@@ -22,4 +22,8 @@ export function reflect({ x, y }, axis) {
 
 export function magnitude({ h, v }) {
   return Math.sqrt(h * h + v * v);
+}
+
+export function distance([x1, y1], [x2, y2]) {
+  return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
