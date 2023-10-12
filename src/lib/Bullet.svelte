@@ -4,11 +4,14 @@
   const dispatch = createEventDispatcher();
 
   export let id;
+  export let targets = [];
   let x;
   let y;
   let heading = { h: 0, v: 0 };
   let speed = 0;
   let size = 8;
+  let exploding = false;
+  let maxExplosionRadius = 100;
 
   let xMin = -size;
   let yMin = -size;
@@ -20,10 +23,13 @@
   let topSpeed = 30;
   let range = Math.min(innerWidth, innerHeight) - 120;
   let spent = true;
-  $: opacity = 1 - (1 / (range - distanceTraveled));
+  $: opacity = exploding ? 1 - (1 / (maxExplosionRadius / size)) : 1 - (1 / (range - distanceTraveled));
+  $: halfSize = size / 2;
 
   function init() {
     spent = true;
+    exploding = false;
+    size = 8;
     distanceTraveled = 0;
   }
 
@@ -60,6 +66,13 @@
 
   export function move() {
     if (spent) return;
+    if (exploding) {
+      if (size < maxExplosionRadius) {
+        size++;
+        return;
+      }
+      return init();
+    }
 
     if ((++distanceTraveled * speed) > range) {
       distanceTraveled = range;
@@ -73,10 +86,27 @@
     if (x < xMin) x = xMax;
     if (y > yMax) y = yMin;
     if (y < yMin) y = yMax;
+
+    if (targets?.length) {
+      let i = targets.length;
+      while (i--) {
+        const target = targets[i];
+        if (target.overlap({ x, y })) {
+          exploding = true;
+          opacity = 1;
+          x += halfSize;
+          y += halfSize;
+        }
+      }
+    }
   }
 </script>
 
-<div class="bullet" class:dead={spent} style="left:{x}px; top:{y}px; opacity:{opacity};"></div>
+{#if !exploding}
+  <div class=bullet class:spent={spent} style="left:{x}px; top:{y}px; height:8px; width:8px; opacity:{opacity};"></div>
+{:else}
+  <div class="explosion" class:spent={spent} style="left:{x - halfSize}px; top:{y - halfSize}px; height:{size}px; width:{size}px; border-radius:{size}px; opacity:{opacity}"></div>
+{/if}
 
 <style>
   .bullet {
@@ -87,7 +117,15 @@
     width: 8px;
     z-index: 2;
   }
-  .dead {
+  .explosion {
+    position: absolute;
+    background: #0000;
+    border: 2px solid #fff;
+    height: 12px;
+    width: 12px;
+    z-index: 2;
+  }
+  .spent {
     display: none;
   }
 </style>

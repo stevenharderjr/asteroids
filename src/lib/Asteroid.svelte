@@ -16,7 +16,6 @@
 
   $: xMax = (() => window.innerWidth)();
   $: yMax = (() => window.innerHeight)();
-  $: minCoord = -size;
   let alive = true;
   let x = ~~(Math.random() * window.innerWidth - size);
   let y = ~~(Math.random() * window.innerHeight - size);
@@ -54,37 +53,25 @@
 
     x += h;
     y += v;
+    const minCoord = -size;
     if (x > xMax) x = minCoord;
     else if (x < minCoord) x = xMax;
     if (y > yMax) y = minCoord;
     else if (y < minCoord) y = yMax;
 
+
     const { x: playerX, y: playerY, size: playerSize, heading: playerHeading, mass: playerMass } = player;
-    if (playerSize) {
-      // const hitboxTL = playerSize * 0.3;
-      // const hitboxBR = playerSize * 0.7;
-      // if (x + size < playerX + hitboxTL) return;
-      // if (y + size < playerY + hitboxTL) return;
-      // if (x > playerX + hitboxBR) return;
-      // if (y > playerY + hitboxBR) return;
-      // must be in contact
+    const positionVector = overlap(player);
 
-      // direction of bouncer to player
+    if (positionVector) {
       const heading = { h, v };
-      const asteroidOffset = size / 2;
-      const playerOffset = playerSize / 2;
-      if (distance([playerX + playerOffset, playerY + playerOffset], [x + asteroidOffset, y + asteroidOffset]) > (asteroidOffset + playerOffset * 0.5)) return;
-
       const currentSpeed = magnitude(heading);
       const playerSpeed = magnitude(playerHeading);
       const playerForce = playerSpeed * playerMass;
       const asteroidForce = currentSpeed * mass;
       const relativePlayerForce = playerForce / asteroidForce;
       const relativeAsteroidForce = asteroidForce / playerForce;
-      console.log({ playerForce, asteroidForce });
 
-
-      const positionVector = vector({ h: playerX + playerOffset, v: playerY + playerOffset}, { h: x + asteroidOffset, v: y + asteroidOffset });
       // median of player and bouncer trajectories?
       const medianVector = vector(playerHeading, heading);
       // vector from median trajectory and relative position
@@ -126,6 +113,24 @@
     // growthFactor = 1;
     // deadFactor = 4;
     // dispatch('kill', { id });
+  }
+
+  export function overlap({ x: testX, y: testY, size: testSize = 0 }) {
+    if (!alive) return;
+    // bail out if it's not close
+    if (x + size < testX) return;
+    if (y + size < testY) return;
+    if (x > testX + testSize) return;
+    if (y > testY + testSize) return;
+
+    // looks like a close call, so check actual distance
+    const heading = { h, v };
+    const asteroidOffset = size / 2;
+    const testOffset = testSize / 2;
+    if (distance([testX + testOffset, testY + testOffset], [x + asteroidOffset, y + asteroidOffset]) > (asteroidOffset + testOffset * 0.5)) return;
+    // asteroid overlaps test coordinates
+    // return vector from test coordinates toward center of asteroid
+    return vector({ h: testX + testOffset, v: testY + testOffset}, { h: x + asteroidOffset, v: y + asteroidOffset });
   }
 
   export function grow() {

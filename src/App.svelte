@@ -136,9 +136,8 @@
 <main>
   <div class="container">
     <Player size={80} bind:this={player} on:enter-key={handlePause} on:shoot={fireNextBullet} />
-    <!-- <Bullet id="1" bind:this={units[1]} /> -->
     {#each bullets as bullet, i}
-      <Bullet id={'bullet' + i} bind:this={bullets[i]} />
+      <Bullet id={'bullet' + i} bind:this={bullets[i]} targets={asteroids} />
     {/each}
     {#each asteroids as asteroid, i}
       <Asteroid id={'asteroid' + i} player={playerStatus} bind:this={asteroids[i]} on:collision={handleCollision} />
